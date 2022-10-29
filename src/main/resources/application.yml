@@ -1,0 +1,85 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: dgtc
+  http:
+    converters:
+      preferred-json-mapper: gson # Preferred JSON mapper to use for HTTP message conversion.
+  servlet:
+    multipart:
+      max-file-size: "2MB"
+      max-request-size: "2MB"
+
+management:
+  endpoints:
+    web:
+      base-path: ""
+      exposure:
+        include: "health, info"
+  endpoint:
+    health:
+      show-details: always
+
+springfox:
+  documentation:
+    swagger-ui:
+      enabled: true
+    swagger:
+      v2:
+        enabled: true
+
+---
+spring:
+  profiles: sandbox
+
+app:
+  version: v20201021
+  storage-domain: "http://116.118.49.152:8080"
+
+auth:
+  secret-key: ahihi
+  expire-time-mills: 1800000 # 30 minutes
+  useGoogleAuth: false
+  google-auth-url: https://security.dgtc.vn/token-gateway/api/verify_otp/
+  google-auth-type: ga
+
+main-database:
+  username: "mysqlsandbox"
+  password: "Abc@123456"
+  jdbc-url: "jdbc:mysql://116.118.49.154:3306/dgtc?allowPublicKeyRetrieval=true&useSSL=false&useUnicode=yes&characterEncoding=UTF-8"
+
+gen-id-database:
+  configTable: "dgtc_genid_config"
+  dataTable: "dgtc_genid_data"
+  driverClassName: "com.mysql.jdbc.Driver"
+  jdbcUrl: "jdbc:mysql://116.118.49.154:3306/dgtc_genid?user=mysqlsandbox&password=Abc@123456&useSSL=false&useUnicode=yes&characterEncoding=UTF-8"
+
+redis:
+  cluster-enabled: false
+  addresses:
+    - "redis://116.118.49.154:6379"
+  ping-connection-interval: 10000
+  password: Abc@123456
+
+cache:
+  service-cache-prefix: dgtc
+  ttl-token-list: 31
+  time-unit-token-list: DAYS
+  ttl-auction-status: 7
+  time-unit-auction-status: DAYS
+  ttl-auction-step-status: 7
+  time-unit-auction-step-status: DAYS
+
+s3:
+  url: "http://116.118.49.154:9000"
+  accessKey: "AKIAIOSFODNN7EXAMPLE"
+  secretKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+  buckets:
+    images: dgtc_images
+    files: dgtc_files
+
+firebase:
+  firebase-configuration-file: "fcm/dtotest-2b59e-firebase-adminsdk-1clny-c832915eff.json"
+  firebase-database-url: "https://dtotest-2b59e.firebaseio.com"

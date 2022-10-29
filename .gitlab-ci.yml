@@ -1,0 +1,80 @@
+variables:
+  CHECK_OUT_PATH: "/home/git-checkout"
+  DEPLOY_PATH: "/home/deploy"
+
+stages:
+  - check_out_dev
+  - check_out_prod
+  - install_dependencies
+  - build
+  - deploy
+
+check out dev:
+  stage: check_out_dev
+  script:
+    - cd ${CHECK_OUT_PATH}
+    - '[[ -d "${CI_PROJECT_NAME}" ]] && sudo rm -r ${CI_PROJECT_NAME}'
+    - git clone ${CI_REPOSITORY_URL}
+    - cd ${CI_PROJECT_NAME}
+    - git checkout dev
+    - git status
+    - git reset --hard
+    - git clean -fd
+
+  only:
+    - dev
+
+check out prod:
+  stage: check_out_prod
+  script:
+    - cd ${CHECK_OUT_PATH}
+    - '[[ -d "${CI_PROJECT_NAME}" ]] && sudo rm -r ${CI_PROJECT_NAME}'
+    - git clone ${CI_REPOSITORY_URL}
+    - cd ${CI_PROJECT_NAME}
+    - git checkout $(git describe --tags `git rev-list --tags --max-count=1`)
+    - git status
+    - git reset --hard
+    - git clean -fd
+
+  only:
+    - tags
+
+install_dependencies:
+  stage: install_dependencies
+  script:
+    - cd ${CHECK_OUT_PATH}/${CI_PROJECT_NAME}
+    - mvn clean install
+  only:
+    - dev
+    - tags
+
+build:
+  stage: build
+  script:
+    - cd ${CHECK_OUT_PATH}/${CI_PROJECT_NAME}
+    - '[[ -d "${DEPLOY_PATH}/${CI_PROJECT_NAME}/dist" ]] && sudo rm -r ${DEPLOY_PATH}/${CI_PROJECT_NAME}/dist'
+    - mkdir ${DEPLOY_PATH}/${CI_PROJECT_NAME}/dist
+    - cp target/*.jar ${DEPLOY_PATH}/${CI_PROJECT_NAME}/dist
+    - '[[ -d "${DEPLOY_PATH}/${CI_PROJECT_NAME}/conf" ]] && sudo rm -r ${DEPLOY_PATH}/${CI_PROJECT_NAME}/conf'
+    - cp -r src/main/resources ${DEPLOY_PATH}/${CI_PROJECT_NAME}/conf
+  only:
+    - dev
+    - tags
+
+deploy dev:
+  stage: deploy
+  script:
+    - echo "Do your deploy here"
+    - ${DEPLOY_PATH}/${CI_PROJECT_NAME}/runserver restart
+  only:
+    - dev
+
+click to deploy to prod:
+  stage: deploy
+  script:
+    - echo "Do your deploy here"
+    - ${DEPLOY_PATH}/${CI_PROJECT_NAME}/runserver restart
+  when: manual
+  allow_failure: false
+  only:
+    - tags

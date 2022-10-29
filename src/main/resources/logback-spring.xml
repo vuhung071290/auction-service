@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <!-- Profiles -->
+  <!-- This is by default if none of the below profiles is chosen -->
+  <springProfile name="!(stg | prod | lt | file-sync | file-async)">
+    <!-- Properties -->
+    <property name="logFolder"
+              value="./log"/>
+
+    <property name="consolePattern"
+              value="%date{ISO8601} %green([%X{X-B3-TraceId}]) %magenta([%thread]) %highlight(%level) %cyan(%logger{20}.%method\\(\\):%line) %message%n"/>
+
+    <property name="filePattern"
+              value="%date{ISO8601} [%X{X-B3-TraceId}] [%thread] %level %logger{20}.%method\\(\\):%line %message%n"/>
+
+    <!-- Appenders -->
+    <appender
+            name="consoleAppender"
+            class="ch.qos.logback.core.ConsoleAppender">
+      <!--  Encoders are assigned the type ch.qos.logback.classic.encoder.PatternLayoutEncoder by default  -->
+      <encoder>
+        <pattern>${consolePattern}</pattern>
+      </encoder>
+    </appender>
+
+    <appender
+            name="fileAppender"
+            class="ch.qos.logback.core.FileAppender">
+      <encoder>
+        <pattern>${filePattern}</pattern>
+      </encoder>
+      <file>${logFolder}/system.log</file>
+      <append>false</append>
+    </appender>
+
+    <!--  Loggers  -->
+    <root level="INFO">
+      <appender-ref ref="consoleAppender"/>
+      <appender-ref ref="fileAppender"/>
+    </root>
+  </springProfile>
+
+  <springProfile name="stg">
+    <property name="pattern"
+              value="%date{ISO8601} [%X{X-B3-TraceId}] [%thread] %level %logger{20}.%method\\(\\):%line %message%n"/>
+
+    <appender
+            name="consoleAppender"
+            class="ch.qos.logback.core.ConsoleAppender">
+      <encoder>
+        <pattern>${pattern}</pattern>
+      </encoder>
+    </appender>
+
+    <root level="INFO">
+      <appender-ref ref="consoleAppender"/>
+    </root>
+  </springProfile>
+
+  <springProfile name="prod">
+    <!-- Remove method and line for better performance -->
+    <property name="pattern"
+              value="%date{ISO8601} [%X{X-B3-TraceId}] [%thread] %level %logger{20} %message%n"/>
+
+    <appender
+            name="consoleAppender"
+            class="ch.qos.logback.core.ConsoleAppender">
+      <encoder>
+        <pattern>${pattern}</pattern>
+      </encoder>
+    </appender>
+
+    <root level="INFO">
+      <appender-ref ref="consoleAppender"/>
+    </root>
+  </springProfile>
+
+  <!-- In case you need log file, combine this profile with others -->
+  <springProfile name="file-sync">
+    <property name="logFolder"
+              value="./log"/>
+
+    <property name="pattern"
+              value="%date{ISO8601} [%X{X-B3-TraceId}] [%thread] %level %logger{20} %message%n"/>
+
+    <appender
+            name="fileAppender"
+            class="ch.qos.logback.core.rolling.RollingFileAppender">
+      <encoder>
+        <pattern>${pattern}</pattern>
+      </encoder>
+      <file>${logFolder}/system.log</file>
+      <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+        <!--    Daily rollover    -->
+        <fileNamePattern>${logFolder}/%d{yyyy-MM, aux}/system-%d-%i.log</fileNamePattern>
+        <!--    Each file should be at most 100MB    -->
+        <maxFileSize>100MB</maxFileSize>
+        <!--    Keep 60 days worth of history    -->
+        <maxHistory>60</maxHistory>
+        <!--    All files should be at most 20GB    -->
+        <totalSizeCap>20GB</totalSizeCap>
+      </rollingPolicy>
+    </appender>
+
+    <root level="INFO">
+      <appender-ref ref="fileAppender"/>
+    </root>
+  </springProfile>
+
+  <!-- May be useful when synchronous file logging has performance issues -->
+  <springProfile name="file-async">
+    <property name="logFolder"
+              value="./log"/>
+
+    <property name="pattern"
+              value="%date{ISO8601} [%X{X-B3-TraceId}] [%thread] %level %logger{20} %message%n"/>
+
+    <appender
+            name="fileAppender"
+            class="ch.qos.logback.core.rolling.RollingFileAppender">
+      <!--  Set immediateFlush to false for much higher logging throughput
+            Warning: Logging events can get lost in case your application exits without properly closing appenders
+            Workaround: Use shutdown hook  -->
+      <immediateFlush>false</immediateFlush>
+      <encoder>
+        <pattern>${pattern}</pattern>
+      </encoder>
+      <file>${logFolder}/system.log</file>
+      <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+        <fileNamePattern>${logFolder}/%d{yyyy-MM, aux}/system-%d-%i.log</fileNamePattern>
+        <maxFileSize>100MB</maxFileSize>
+        <maxHistory>60</maxHistory>
+        <totalSizeCap>20GB</totalSizeCap>
+      </rollingPolicy>
+    </appender>
+
+    <appender
+            name="asyncFileAppender"
+            class="ch.qos.logback.classic.AsyncAppender">
+      <appender-ref ref="fileAppender"/>
+      <!--  Default value  -->
+      <queueSize>256</queueSize>
+      <!--  To not drop logging events when queue is nearly full  -->
+      <discardingThreshold>0</discardingThreshold>
+      <!--  Force the appender to wait for all queued events to be flushed before stopping  -->
+      <maxFlushTime>0</maxFlushTime>
+      <!--  Default value  -->
+      <neverBlock>false</neverBlock>
+    </appender>
+
+    <root level="INFO">
+      <appender-ref ref="asyncFileAppender"/>
+    </root>
+  </springProfile>
+</configuration>
